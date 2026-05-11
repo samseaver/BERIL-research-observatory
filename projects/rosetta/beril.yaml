@@ -1,7 +1,7 @@
 project_id: rosetta
 status: proposed
 created_at: "2026-05-07T00:00:00Z"
-last_session_at: "2026-05-08T00:00:00Z"
+last_session_at: "2026-05-11T00:00:00Z"
 branch: projects/rosetta
 engine:
   name: claude
