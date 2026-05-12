@@ -130,6 +130,7 @@ Prioritized by data provenance: UniProt-native annotations first (highest curati
 ## Revision History
 - **v1** (2026-05-07): Initial plan
 - **v2** (2026-05-08): Post-NB01 revision. Restructured evidence channels into 4 priority tiers (UniProt-native first). Added Rhea catalytic activity from `comment_xml` (330K rows, 236K proteins, 13,589 Rhea IDs). Discovered KEGG xrefs are gene IDs not R-numbers, BioCyc xrefs are protein monomers not reactions, RHEA lives in XML not identifier table. User EC→reaction lookup covers 25,757 reactions. RAST validation set is 84.5M rows (32.2M with ECs), not ~2K. Revised notebook plan from 9 to 8 notebooks. De-prioritized FitnessBrowser besthitmetacyc (Tier 3) in favor of UniProt-native data.
+- **v3** (2026-05-11): Added NB09 evidence-stratified validation. Tier 1 protein-EC pairs stratified by UniProt data source (Swiss-Prot vs TrEMBL) and protein existence level (experimental, transcript, computational). Swiss-Prot F1=0.890 vs TrEMBL F1=0.837. PE-experimental proteins show lowest F1 (0.769) due to multi-functional annotation complexity. Swiss-Prot alone covers 44.2% of balanced reactions; TrEMBL adds 2,043 reactions via 523 exclusive ECs.
 
 ## Authors
 - Sam Seaver, KBase / Argonne National Laboratory

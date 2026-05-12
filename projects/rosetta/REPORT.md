@@ -45,6 +45,27 @@ False positive analysis reveals that the top disagreements between Tier 1 and RA
 
 *(Notebook: 07_rast_validation.ipynb)*
 
+### Finding 6: Swiss-Prot annotations are more accurate, but computationally inferred proteins dominate coverage
+
+![Protein-level validation by evidence quality](figures/evidence_stratified_f1.png)
+
+Stratifying Tier 1 validation by UniProt evidence quality reveals two dimensions:
+
+**Data source**: Swiss-Prot (reviewed, manually curated) annotations achieve F1 = 0.890 vs TrEMBL (unreviewed) F1 = 0.837 — a +5.3 percentage point advantage. Swiss-Prot has both higher precision (88.6% vs 84.7%) and higher recall (89.4% vs 82.7%), confirming that manual curation improves annotation quality. However, Swiss-Prot proteins represent only 0.8% of Tier 1 (218K of 26.5M unique proteins) and reach 44.2% of balanced reactions. TrEMBL contributes 523 exclusive ECs that map to 2,043 additional reactions — modest but non-trivial.
+
+**Protein existence (PE) level**: Counterintuitively, experimentally characterized proteins (PE1) have the *lowest* F1 (0.769), below transcript-level (0.848) and computationally inferred (0.837). This likely reflects two factors: (1) experimentally studied proteins are often multi-functional enzymes where UniProt assigns precise ECs that differ from RAST's broader functional roles, and (2) the PE-experimental set mixes 36K high-quality Swiss-Prot entries with 43K TrEMBL entries that inherit the "experimental" PE level through orthology transfer without the same curation depth.
+
+| Stratum | Proteins | Precision | Recall | F1 |
+|---------|----------|-----------|--------|-----|
+| ALL | 15,952,112 | 84.7% | 82.7% | 0.837 |
+| Swiss-Prot | 159,546 | 88.6% | 89.4% | 0.890 |
+| TrEMBL | 15,792,566 | 84.7% | 82.7% | 0.837 |
+| PE: experimental | 29,410 | 74.6% | 79.4% | 0.769 |
+| PE: transcript | 83,881 | 84.4% | 85.2% | 0.848 |
+| PE: computational | 15,838,777 | 84.7% | 82.7% | 0.837 |
+
+*(Notebook: 09_evidence_stratified_validation.ipynb)*
+
 ## Results
 
 ### Evidence Channel Coverage
@@ -159,6 +180,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `data/curated_evidence_ec.parquet` | 150,658 | Tier 3 curated entity→EC mappings |
 | `data/besthitmetacyc_rxnid.parquet` | 22,310 | MetaCyc direct reaction ID mappings |
 | `data/evidence_integration_summary.parquet` | 34,343 | Final per-reaction evidence matrix |
+| `data/swissprot_proteins.parquet` | 574,627 | Swiss-Prot protein IDs for evidence stratification |
 
 ## Supporting Evidence
 
@@ -174,6 +196,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `06_evidence_integration.ipynb` | Combine all channels, assign confidence tiers |
 | `07_rast_validation.ipynb` | Validate against RAST: EC-level, protein-level, reaction-level F1 |
 | `08_summary_visualizations.ipynb` | Publication-quality figures |
+| `09_evidence_stratified_validation.ipynb` | Stratified validation by Swiss-Prot/TrEMBL and PE level |
 
 ### Figures
 
@@ -184,6 +207,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `channel_coverage.png` | Horizontal bar chart of per-channel reaction coverage |
 | `ec_validation_f1.png` | Grouped bar chart of precision/recall/F1 per channel vs RAST |
 | `evidence_depth.png` | Histogram of reactions by number of supporting channels |
+| `evidence_stratified_f1.png` | Grouped bar chart of precision/recall/F1 by evidence quality stratum |
 
 ## Future Directions
 
