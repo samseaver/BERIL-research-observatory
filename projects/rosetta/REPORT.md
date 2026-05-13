@@ -66,15 +66,27 @@ Stratifying Tier 1 validation by UniProt evidence quality reveals two dimensions
 
 *(Notebook: 09_evidence_stratified_validation.ipynb)*
 
-### Finding 7: Transport reactions are disproportionately unmapped
+### Finding 7: Transport gap closed by multi-layer substrate matching
 
 ![Transport vs non-transport breakdown for mapped and unmapped reactions](figures/transport_breakdown.png)
 
-Of the 34,343 balanced reactions, 6,004 (17.5%) are flagged as transport (`is_transport=True`). Transport reactions are **disproportionately unmapped**: 82.5% of transport reactions lack any evidence, compared to 42.5% for non-transport. Transport reactions account for 29.2% of all unmapped reactions (4,954 of 16,992) despite being only 17.5% of the total.
+Of the 34,343 balanced reactions, 6,004 (17.5%) are flagged as transport (`is_transport=True`). Transport reactions were **disproportionately unmapped** by the EC-based pipeline: 82.5% lacked any evidence, compared to 42.5% for non-transport, accounting for 29.2% of all unmapped reactions.
 
-This gap is structural: transport reactions often lack EC numbers (the primary mapping bridge) and are annotated in UniProt with generic descriptions ("amino acid transporter", "ABC transporter permease") that cannot be matched to specific ModelSEED reactions naming individual substrates ("Cotransport of L-glutamate and H+"). Text-based keyword matching between 10.4M UniProt transport protein descriptions and unmapped transport reaction names produced zero high-confidence candidates, confirming that simple name-matching approaches cannot bridge this gap. Substrate-structure-based or reaction-rule-based approaches would be needed.
+![Transport evidence integration: per-layer coverage and confidence distribution](figures/transport_evidence.png)
 
-*(Notebook: 10_transport_analysis.ipynb)*
+A transport-specific evidence pipeline using 4 annotation layers — protein names, GO terms, comment_xml function descriptions, and InterPro domains — matched against the actual reagent-molecule substrate vocabulary (2,753 unique substrates across 5,797 transport reactions). This recovered **3,903 previously unmapped transport reactions**, bringing transport coverage from 17.5% to 82.5%:
+
+| Layer | Reactions Covered (unmapped) | Match Type |
+|-------|------------------------------|------------|
+| Protein names | 3,056 / 4,954 | 2,979 specific / 606 category |
+| GO terms | 2,765 / 4,954 | 2,454 specific / 843 category |
+| comment_xml | 3,211 / 4,954 | 3,330 specific / 478 category |
+| InterPro domains | 3,246 / 4,954 | 3,379 specific / 499 category |
+| **Combined** | **3,903 / 4,954** | **3,140 high / 1,487 medium** |
+
+Of the 4,627 transport reactions with any substrate evidence, 2,597 (56%) are supported by all 4 layers, and 3,140 (68%) have high confidence (3+ layers with specific substrate match). Only 1,051 transport reactions (17.5%) remain unmapped after this integration.
+
+*(Notebooks: 10_transport_analysis.ipynb, 11_transport_evidence.ipynb)*
 
 ### Finding 8: 90% of unmapped non-transport reactions have no EC number assigned
 
@@ -149,7 +161,7 @@ EC overlap is high: 3,683 ECs are shared by all three tiers. Tier 1 contributes 
 
 The Rosetta mapping demonstrates that **systematic multi-evidence integration can reliably link approximately half of the known mass-balanced biochemistry to protein annotations**, with high confidence. The 14,470 high-confidence mappings (42.1% of balanced reactions) provide a robust foundation for automated metabolic model reconstruction. These reactions are supported by 3-4 independent evidence tiers, making them highly reliable for gap-filling and model comparison.
 
-The 50% coverage ceiling is inherent to the current state of enzyme characterization rather than a limitation of the mapping approach. Transport and unmapped-reaction analysis (NB10) decomposes the 16,992 unmapped reactions into three structural categories: (1) **transport reactions** (4,954; 29.2%) — disproportionately unmapped because they lack EC numbers and have generic UniProt descriptions; (2) **EC orphan non-transport reactions** (10,832; 63.7%) — reactions with no EC number assigned in the ModelSEED bridge, making them unreachable by any EC-based pipeline; and (3) **annotatable non-transport reactions** (1,206; 7.1%) — reactions with an EC but no protein annotated with that EC across any evidence tier.
+The 50% coverage ceiling for EC-based mapping is inherent to the current state of enzyme characterization rather than a limitation of the mapping approach. However, adding transport-specific substrate matching (NB11) extends total evidence coverage to **61.9%** (21,254 of 34,343 balanced reactions). The remaining 13,089 unmapped reactions (38.1%) decompose into: (1) **EC orphan non-transport reactions** (10,832; 31.5% of total) — reactions with no EC number assigned in the ModelSEED bridge, making them unreachable by any EC-based pipeline; (2) **still-unmapped transport** (1,051; 3.1%) — transport reactions not reached by any evidence layer; and (3) **annotatable non-transport reactions** (1,206; 3.5%) — reactions with an EC but no protein annotated with that EC across any evidence tier.
 
 ### Literature Context
 
@@ -171,7 +183,9 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 
 4. **Validated EC→reaction bridge tables**: The parquet bridge files (EC, KEGG, MetaCyc → balanced ModelSEED reactions) are reusable data products for any downstream metabolic modeling pipeline.
 
-5. **Decomposition of the unmapped reaction frontier**: The 16,992 unmapped reactions break into three actionable categories: transport (29.2%, needing substrate-structure matching), EC orphans (63.7%, needing EC assignment to reactions), and annotatable gaps (7.1%, needing protein annotation for existing ECs). This decomposition directs future effort more precisely than reporting a single coverage number.
+5. **Transport evidence integration via substrate matching**: A transport-specific pipeline using 4 annotation layers (protein names, GO terms, comment_xml, InterPro domains) matched against reagent-molecule substrate vocabularies recovered 3,903 previously unmapped transport reactions — flipping transport coverage from 17.5% to 82.5% and extending total evidence coverage from 50.5% to 61.9%.
+
+6. **Decomposition of the unmapped reaction frontier**: After transport evidence integration, the 13,089 remaining unmapped reactions are dominated by EC orphans (10,832; 82.8% of remaining), with only 1,051 still-unmapped transport reactions and 1,206 annotatable non-transport gaps.
 
 ### Limitations
 
@@ -195,7 +209,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `refdata_uniprot` | `identifier`, `entity`, `protein`, `name`, `comment_xml` | UniProt cross-references and Rhea catalytic activity |
 | `kbase_ke_pangenome` | `eggnog_mapper_annotations`, `bakta_annotations`, `bakta_db_xrefs` | Pangenome-level EC and KEGG annotations |
 | `kescience_fitnessbrowser` | `curatedgene`, `seedclass`, `besthitmetacyc` | Curated gene functions, EC assignments, MetaCyc links |
-| `refdata_interpro` | `protein2ipr`, `go_mapping` | InterPro domain→GO→EC chain (explored, not in final mapping) |
+| `kescience_interpro` | `protein2ipr`, `entry`, `go_mapping` | InterPro domains and GO terms for transport evidence (NB11) |
 | `u_seaver__msd_biochemistry` | `reaction`, `molecule`, `reagent` | User-augmented biochemistry (same schema) |
 
 ### Generated Data
@@ -214,6 +228,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `data/swissprot_proteins.parquet` | 574,627 | Swiss-Prot protein IDs for evidence stratification |
 | `data/transport_analysis.parquet` | 34,343 | Merged reaction×evidence×transport flags |
 | `data/uniprot_transport_proteins.parquet` | 11,392,424 | UniProt transport protein entries |
+| `data/transport_evidence_mapping.parquet` | 4,627 | Per-reaction transport evidence with confidence tiers |
 
 ## Supporting Evidence
 
@@ -231,6 +246,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `08_summary_visualizations.ipynb` | Publication-quality figures |
 | `09_evidence_stratified_validation.ipynb` | Stratified validation by Swiss-Prot/TrEMBL and PE level |
 | `10_transport_analysis.ipynb` | Transport gap analysis, text matching, unmapped characterization |
+| `11_transport_evidence.ipynb` | Multi-layer transport evidence integration (name, GO, comment, InterPro) |
 
 ### Figures
 
@@ -244,6 +260,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `evidence_stratified_f1.png` | Grouped bar chart of precision/recall/F1 by evidence quality stratum |
 | `transport_breakdown.png` | Stacked bar chart of mapped/unmapped × transport/non-transport |
 | `unmapped_characterization.png` | Two-panel: delta-G histogram and database origin grouped bars |
+| `transport_evidence.png` | Two-panel: per-layer transport coverage and confidence distribution |
 
 ## Future Directions
 

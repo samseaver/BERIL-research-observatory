@@ -130,6 +130,10 @@ Prioritized by data provenance: UniProt-native annotations first (highest curati
 - **Goal**: Quantify transport reaction contribution to unmapped gap; explore text-based matching of UniProt transport proteins; characterize remaining unmapped non-transport reactions by EC gap, database origin, and thermodynamic profile
 - **Expected output**: Transport×mapped cross-tabulation, UniProt transport proteins parquet, EC orphan classification, database origin analysis
 
+### Notebook 11: Transport Evidence Integration
+- **Goal**: Build transport-specific evidence pipeline using 4 annotation layers (protein names, GO terms, comment_xml, InterPro domains) matched against reagent-molecule substrate vocabularies; assign confidence tiers
+- **Expected output**: Per-reaction transport evidence mapping parquet, transport evidence figure, coverage impact analysis
+
 ## Expected Outcomes
 - **If H1 supported**: Multi-evidence approach achieves >70% reaction coverage with F1 >0.8 — demonstrates the value of systematic evidence integration for metabolic model reconstruction
 - **If H0 not rejected**: Coverage remains below 50% or F1 below 0.7 — identifies which evidence channels are most limiting and what additional data sources are needed
@@ -140,6 +144,7 @@ Prioritized by data provenance: UniProt-native annotations first (highest curati
 - **v2** (2026-05-08): Post-NB01 revision. Restructured evidence channels into 4 priority tiers (UniProt-native first). Added Rhea catalytic activity from `comment_xml` (330K rows, 236K proteins, 13,589 Rhea IDs). Discovered KEGG xrefs are gene IDs not R-numbers, BioCyc xrefs are protein monomers not reactions, RHEA lives in XML not identifier table. User EC→reaction lookup covers 25,757 reactions. RAST validation set is 84.5M rows (32.2M with ECs), not ~2K. Revised notebook plan from 9 to 8 notebooks. De-prioritized FitnessBrowser besthitmetacyc (Tier 3) in favor of UniProt-native data.
 - **v3** (2026-05-11): Added NB09 evidence-stratified validation. Tier 1 protein-EC pairs stratified by UniProt data source (Swiss-Prot vs TrEMBL) and protein existence level (experimental, transcript, computational). Swiss-Prot F1=0.890 vs TrEMBL F1=0.837. PE-experimental proteins show lowest F1 (0.769) due to multi-functional annotation complexity. Swiss-Prot alone covers 44.2% of balanced reactions; TrEMBL adds 2,043 reactions via 523 exclusive ECs.
 - **v4** (2026-05-12): Added NB10 transport & unmapped reaction analysis. Transport reactions are 17.5% of balanced reactions but 29.2% of unmapped (82.5% unmapped vs 42.5% for non-transport). Text-based matching of UniProt transport proteins to unmapped transport reactions returned 0 candidates — descriptions are too generic. Of 12,038 unmapped non-transport reactions, 90% (10,832) have no EC assigned (true orphans unreachable by any EC-based pipeline); only 10% (1,206) have an EC but no protein annotated. Unmapped reactions dominated by ModelSEED-native entries (45.6%) and reactions with no abbreviation (36.6%), vs mapped reactions which are primarily KEGG-origin (52.0%) or MetaCyc-origin (26.9%).
+- **v5** (2026-05-13): Added NB11 transport evidence integration. Multi-layer substrate matching (protein names, GO terms, comment_xml, InterPro domains) against reagent-molecule vocabulary (2,753 substrates across 5,797 transport reactions) recovered 3,903 previously unmapped transport reactions — transport coverage 17.5%→82.5%. 2,597 reactions (56%) supported by all 4 layers; 3,140 high confidence. Total evidence coverage extends from 50.5% to 61.9% (21,254 of 34,343). Remaining unmapped: 13,089 (38.1%), dominated by 10,832 EC orphan non-transport reactions.
 
 ## Authors
 - Sam Seaver, KBase / Argonne National Laboratory
