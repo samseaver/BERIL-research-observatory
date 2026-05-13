@@ -66,6 +66,35 @@ Stratifying Tier 1 validation by UniProt evidence quality reveals two dimensions
 
 *(Notebook: 09_evidence_stratified_validation.ipynb)*
 
+### Finding 7: Transport reactions are disproportionately unmapped
+
+![Transport vs non-transport breakdown for mapped and unmapped reactions](figures/transport_breakdown.png)
+
+Of the 34,343 balanced reactions, 6,004 (17.5%) are flagged as transport (`is_transport=True`). Transport reactions are **disproportionately unmapped**: 82.5% of transport reactions lack any evidence, compared to 42.5% for non-transport. Transport reactions account for 29.2% of all unmapped reactions (4,954 of 16,992) despite being only 17.5% of the total.
+
+This gap is structural: transport reactions often lack EC numbers (the primary mapping bridge) and are annotated in UniProt with generic descriptions ("amino acid transporter", "ABC transporter permease") that cannot be matched to specific ModelSEED reactions naming individual substrates ("Cotransport of L-glutamate and H+"). Text-based keyword matching between 10.4M UniProt transport protein descriptions and unmapped transport reaction names produced zero high-confidence candidates, confirming that simple name-matching approaches cannot bridge this gap. Substrate-structure-based or reaction-rule-based approaches would be needed.
+
+*(Notebook: 10_transport_analysis.ipynb)*
+
+### Finding 8: 90% of unmapped non-transport reactions have no EC number assigned
+
+![Unmapped reaction characterization: delta-G distribution and database origin](figures/unmapped_characterization.png)
+
+After accounting for transport, 12,038 non-transport reactions remain unmapped. EC gap classification reveals the dominant cause:
+
+| Category | Reactions | % of Unmapped Non-Transport |
+|----------|-----------|----------------------------|
+| No EC assigned | 10,832 | 90.0% |
+| EC exists, no protein annotated | 1,206 | 10.0% |
+
+The 10,832 "EC orphan" reactions are **structurally unreachable** by any EC-based mapping pipeline — no amount of additional protein annotation will map them without first assigning EC numbers to these reactions. Only 1,206 reactions have an EC but no protein annotated with that EC across any evidence tier, representing a more tractable annotation gap.
+
+Database origin analysis shows unmapped non-transport reactions are dominated by **ModelSEED-native entries** (Other/ModelSEED: 45.6%) and reactions with **no abbreviation** (36.6%), which lack traceability to KEGG or MetaCyc. In contrast, mapped reactions are predominantly KEGG-origin (52.0%) or MetaCyc-origin (26.9%). This indicates that reactions curated from well-established pathway databases are well-connected to protein annotations, while ModelSEED-native reactions — often computationally generated or from specialized sources — remain disconnected.
+
+Delta-G analysis was uninformative: unmapped reactions have a median delta-G of 10,000,000 kJ/mol (a sentinel/placeholder value), indicating that thermodynamic data is simply absent for most unmapped reactions rather than suggesting they are thermodynamically unfavorable.
+
+*(Notebook: 10_transport_analysis.ipynb)*
+
 ## Results
 
 ### Evidence Channel Coverage
@@ -120,7 +149,7 @@ EC overlap is high: 3,683 ECs are shared by all three tiers. Tier 1 contributes 
 
 The Rosetta mapping demonstrates that **systematic multi-evidence integration can reliably link approximately half of the known mass-balanced biochemistry to protein annotations**, with high confidence. The 14,470 high-confidence mappings (42.1% of balanced reactions) provide a robust foundation for automated metabolic model reconstruction. These reactions are supported by 3-4 independent evidence tiers, making them highly reliable for gap-filling and model comparison.
 
-The 50% coverage ceiling is inherent to the current state of enzyme characterization rather than a limitation of the mapping approach. The unmapped 16,992 reactions likely include: (1) reactions with no known enzyme (orphan reactions), (2) reactions with known enzymes that lack EC assignments, and (3) reactions in specialized or poorly studied metabolic pathways.
+The 50% coverage ceiling is inherent to the current state of enzyme characterization rather than a limitation of the mapping approach. Transport and unmapped-reaction analysis (NB10) decomposes the 16,992 unmapped reactions into three structural categories: (1) **transport reactions** (4,954; 29.2%) — disproportionately unmapped because they lack EC numbers and have generic UniProt descriptions; (2) **EC orphan non-transport reactions** (10,832; 63.7%) — reactions with no EC number assigned in the ModelSEED bridge, making them unreachable by any EC-based pipeline; and (3) **annotatable non-transport reactions** (1,206; 7.1%) — reactions with an EC but no protein annotated with that EC across any evidence tier.
 
 ### Literature Context
 
@@ -141,6 +170,8 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 3. **Identification of the 50% coverage ceiling**: The unmapped 16,992 reactions represent a concrete target for future enzyme discovery and annotation efforts. These reactions are invisible to all current annotation tools.
 
 4. **Validated EC→reaction bridge tables**: The parquet bridge files (EC, KEGG, MetaCyc → balanced ModelSEED reactions) are reusable data products for any downstream metabolic modeling pipeline.
+
+5. **Decomposition of the unmapped reaction frontier**: The 16,992 unmapped reactions break into three actionable categories: transport (29.2%, needing substrate-structure matching), EC orphans (63.7%, needing EC assignment to reactions), and annotatable gaps (7.1%, needing protein annotation for existing ECs). This decomposition directs future effort more precisely than reporting a single coverage number.
 
 ### Limitations
 
@@ -181,6 +212,8 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `data/besthitmetacyc_rxnid.parquet` | 22,310 | MetaCyc direct reaction ID mappings |
 | `data/evidence_integration_summary.parquet` | 34,343 | Final per-reaction evidence matrix |
 | `data/swissprot_proteins.parquet` | 574,627 | Swiss-Prot protein IDs for evidence stratification |
+| `data/transport_analysis.parquet` | 34,343 | Merged reaction×evidence×transport flags |
+| `data/uniprot_transport_proteins.parquet` | 11,392,424 | UniProt transport protein entries |
 
 ## Supporting Evidence
 
@@ -197,6 +230,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `07_rast_validation.ipynb` | Validate against RAST: EC-level, protein-level, reaction-level F1 |
 | `08_summary_visualizations.ipynb` | Publication-quality figures |
 | `09_evidence_stratified_validation.ipynb` | Stratified validation by Swiss-Prot/TrEMBL and PE level |
+| `10_transport_analysis.ipynb` | Transport gap analysis, text matching, unmapped characterization |
 
 ### Figures
 
@@ -208,6 +242,8 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `ec_validation_f1.png` | Grouped bar chart of precision/recall/F1 per channel vs RAST |
 | `evidence_depth.png` | Histogram of reactions by number of supporting channels |
 | `evidence_stratified_f1.png` | Grouped bar chart of precision/recall/F1 by evidence quality stratum |
+| `transport_breakdown.png` | Stacked bar chart of mapped/unmapped × transport/non-transport |
+| `unmapped_characterization.png` | Two-panel: delta-G histogram and database origin grouped bars |
 
 ## Future Directions
 
@@ -215,7 +251,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 
 2. **Sequence-based mapping**: Use protein sequence similarity (e.g., BLAST against experimentally characterized enzymes) to reach reactions in the unmapped 49.5% that have no EC-based path.
 
-3. **Characterize unmapped reactions**: Analyze the 16,992 unmapped reactions for pathway membership, organism distribution, and overlap with known orphan enzyme lists to prioritize experimental characterization.
+3. **Assign EC numbers to orphan reactions**: The 10,832 unmapped non-transport reactions with no EC are the largest tractable gap. Computational EC prediction tools (e.g., DeepEC, ECPred) applied to reaction substrates/products could assign EC numbers and unlock these reactions for protein mapping.
 
 4. **Deploy as ModelSEED reconstruction input**: Integrate the scored mapping table as an additional annotation source in ModelSEEDv2 to evaluate whether multi-evidence confidence scoring reduces gap-filling requirements.
 
