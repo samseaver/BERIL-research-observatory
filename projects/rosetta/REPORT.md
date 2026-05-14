@@ -107,6 +107,28 @@ Delta-G analysis was uninformative: unmapped reactions have a median delta-G of 
 
 *(Notebook: 10_transport_analysis.ipynb)*
 
+### Finding 9: Template coverage is type-dependent — conditional reactions well-mapped, gapfilling reactions mostly EC orphans
+
+![Template reaction coverage by type, gap characterization, and balanced reaction landscape](figures/template_coverage.png)
+
+ModelSEED v7.0 reconstruction templates (GramNeg, GramPos, Archaea, Core) contain **8,606 unique reactions** — just 25.1% of the 34,343 balanced reactions. Stratifying by template reaction type reveals a sharp divide in evidence coverage:
+
+| Type | Total | Balanced | Evidence | Coverage | RAST | Gap |
+|------|-------|----------|----------|----------|------|-----|
+| **conditional** | 6,306 | 5,770 | 5,043 | **80.0%** | 3,108 | 727 |
+| **gapfilling** | 2,258 | 2,059 | 858 | **38.0%** | 380 | 1,201 |
+| **spontaneous** | 31 | 29 | 8 | 25.8% | 1 | 21 |
+| **universal** | 11 | 11 | 7 | 63.6% | 1 | 4 |
+| **TOTAL** | 8,606 | 7,869 | 5,916 | **68.7%** | 3,490 | 1,953 |
+
+**Conditional reactions** (gene-associated, added when the enzyme is detected) have 80% evidence coverage — the multi-evidence pipeline performs well for these well-characterized reactions. **Gapfilling reactions** have only 38% coverage; their 1,201 gap reactions are dominated by EC orphans (1,182 of 1,201 have no EC assigned). This is expected: gapfilling reactions are added computationally to achieve model feasibility, not because an enzyme was detected.
+
+The 727 conditional gap reactions are the most actionable: 560 have an EC but no protein was found with that EC in any source — real annotation gaps where additional protein characterization could close the coverage.
+
+**15,338 reactions have UniProt evidence but are NOT in any template** — potential model expansion candidates. Of these, 7,240 (47.2%) are RAST-detectable (the template is the bottleneck, not enzyme detection), while 8,098 (52.8%) would require alternative detection via HMM profiles from UniProt reference proteins, eggNOG orthologous groups, or domain-based annotation.
+
+*(Notebook: 12_template_coverage.ipynb)*
+
 ## Results
 
 ### Evidence Channel Coverage
@@ -187,6 +209,8 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 
 6. **Decomposition of the unmapped reaction frontier**: After transport evidence integration, the 13,089 remaining unmapped reactions are dominated by EC orphans (10,832; 82.8% of remaining), with only 1,051 still-unmapped transport reactions and 1,206 annotatable non-transport gaps.
 
+7. **Template coverage stratification reveals type-dependent evidence quality**: Conditional template reactions have 80% evidence coverage while gapfilling reactions have only 38% — and gapfilling gaps are 98% EC orphans. Additionally, 15,338 reactions with UniProt evidence are not in any template, of which 47.2% are already RAST-detectable (the template is the bottleneck, not enzyme detection).
+
 ### Limitations
 
 1. **Protein-level validation is limited to Tier 1 vs RAST**: Tier 2 uses gene cluster IDs and Tier 3 uses locus IDs, so cross-entity protein-level F1 cannot be computed for those tiers. EC-level validation is the only common metric across all tiers.
@@ -229,6 +253,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `data/transport_analysis.parquet` | 34,343 | Merged reaction×evidence×transport flags |
 | `data/uniprot_transport_proteins.parquet` | 11,392,424 | UniProt transport protein entries |
 | `data/transport_evidence_mapping.parquet` | 4,627 | Per-reaction transport evidence with confidence tiers |
+| `data/template_coverage_summary.tsv` | 5 | Template coverage by reaction type |
 
 ## Supporting Evidence
 
@@ -247,6 +272,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `09_evidence_stratified_validation.ipynb` | Stratified validation by Swiss-Prot/TrEMBL and PE level |
 | `10_transport_analysis.ipynb` | Transport gap analysis, text matching, unmapped characterization |
 | `11_transport_evidence.ipynb` | Multi-layer transport evidence integration (name, GO, comment, InterPro) |
+| `12_template_coverage.ipynb` | ModelSEED template reaction coverage by type; gap analysis; detection strategies |
 
 ### Figures
 
@@ -261,6 +287,7 @@ ModelSEEDv2 (Faria et al., 2023) identified "poorly mapped annotations" as a maj
 | `transport_breakdown.png` | Stacked bar chart of mapped/unmapped × transport/non-transport |
 | `unmapped_characterization.png` | Two-panel: delta-G histogram and database origin grouped bars |
 | `transport_evidence.png` | Two-panel: per-layer transport coverage and confidence distribution |
+| `template_coverage.png` | Three-panel: coverage by type, gap characterization, balanced reaction landscape |
 
 ## Future Directions
 

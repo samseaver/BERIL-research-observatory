@@ -134,6 +134,10 @@ Prioritized by data provenance: UniProt-native annotations first (highest curati
 - **Goal**: Build transport-specific evidence pipeline using 4 annotation layers (protein names, GO terms, comment_xml, InterPro domains) matched against reagent-molecule substrate vocabularies; assign confidence tiers
 - **Expected output**: Per-reaction transport evidence mapping parquet, transport evidence figure, coverage impact analysis
 
+### Notebook 12: Template Reaction Coverage
+- **Goal**: Parse ModelSEED reconstruction templates (v7.0), cross-reference against evidence pipeline, stratify by reaction type (conditional, gapfilling, spontaneous, universal), characterize gaps, and assess detection strategies for non-template reactions with evidence
+- **Expected output**: Template coverage summary TSV, template coverage figure, detection strategy analysis
+
 ## Expected Outcomes
 - **If H1 supported**: Multi-evidence approach achieves >70% reaction coverage with F1 >0.8 — demonstrates the value of systematic evidence integration for metabolic model reconstruction
 - **If H0 not rejected**: Coverage remains below 50% or F1 below 0.7 — identifies which evidence channels are most limiting and what additional data sources are needed
@@ -145,6 +149,7 @@ Prioritized by data provenance: UniProt-native annotations first (highest curati
 - **v3** (2026-05-11): Added NB09 evidence-stratified validation. Tier 1 protein-EC pairs stratified by UniProt data source (Swiss-Prot vs TrEMBL) and protein existence level (experimental, transcript, computational). Swiss-Prot F1=0.890 vs TrEMBL F1=0.837. PE-experimental proteins show lowest F1 (0.769) due to multi-functional annotation complexity. Swiss-Prot alone covers 44.2% of balanced reactions; TrEMBL adds 2,043 reactions via 523 exclusive ECs.
 - **v4** (2026-05-12): Added NB10 transport & unmapped reaction analysis. Transport reactions are 17.5% of balanced reactions but 29.2% of unmapped (82.5% unmapped vs 42.5% for non-transport). Text-based matching of UniProt transport proteins to unmapped transport reactions returned 0 candidates — descriptions are too generic. Of 12,038 unmapped non-transport reactions, 90% (10,832) have no EC assigned (true orphans unreachable by any EC-based pipeline); only 10% (1,206) have an EC but no protein annotated. Unmapped reactions dominated by ModelSEED-native entries (45.6%) and reactions with no abbreviation (36.6%), vs mapped reactions which are primarily KEGG-origin (52.0%) or MetaCyc-origin (26.9%).
 - **v5** (2026-05-13): Added NB11 transport evidence integration. Multi-layer substrate matching (protein names, GO terms, comment_xml, InterPro domains) against reagent-molecule vocabulary (2,753 substrates across 5,797 transport reactions) recovered 3,903 previously unmapped transport reactions — transport coverage 17.5%→82.5%. 2,597 reactions (56%) supported by all 4 layers; 3,140 high confidence. Total evidence coverage extends from 50.5% to 61.9% (21,254 of 34,343). Remaining unmapped: 13,089 (38.1%), dominated by 10,832 EC orphan non-transport reactions.
+- **v6** (2026-05-14): Added NB12 template coverage analysis. ModelSEED v7.0 templates contain 8,606 unique reactions (25.1% of balanced set). Conditional reactions (6,306) have 80.0% evidence coverage; gapfilling (2,258) only 38.0% — gap dominated by EC orphans (1,182/1,201). 75.2% of balanced template reactions have evidence. 15,338 additional reactions have evidence but are NOT in any template — 47.2% RAST-detectable (template is bottleneck), 52.8% need HMM/BLAST or domain-based detection.
 
 ## Authors
 - Sam Seaver, KBase / Argonne National Laboratory
