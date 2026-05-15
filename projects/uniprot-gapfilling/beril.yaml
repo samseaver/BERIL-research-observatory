@@ -1,0 +1,16 @@
+project_id: uniprot-gapfilling
+status: proposed
+created_at: "2026-05-15T00:00:00Z"
+last_session_at: "2026-05-15T00:00:00Z"
+branch: projects/uniprot-gapfilling
+engine:
+  name: claude
+authors:
+  - name: "Sam Seaver"
+    affiliation: "KBase / Argonne National Laboratory"
+    orcid: ""
+artifacts:
+  readme: true
+  research_plan: true
+  report: false
+  review: false
