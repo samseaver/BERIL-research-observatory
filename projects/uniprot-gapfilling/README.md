@@ -4,10 +4,10 @@
 Can enzyme-similarity and reaction-similarity embeddings, combined with Rosetta's UniProt-to-ModelSEED mappings, propose biologically plausible gap-filling solutions that enable metabolic reconstructions to grow?
 
 ## Status
-In Progress — initial notebook uploaded, research plan drafted.
+In Progress — research plan v2, prototype scope (Swiss-Prot only, 42 reactions × 48 E. coli genomes).
 
 ## Overview
-Standard gap-filling approaches rely on database-wide reaction pools and cost minimization, often adding reactions with little biological evidence. This project builds on the [Rosetta mapping](../rosetta/) (UniProt → ModelSEED reactions with evidence tiers) to constrain gap-filling candidates using embedded enzyme similarities and embedded reaction similarities. By scoring candidate reactions against a genome's proteome, gap-fill proposals are grounded in sequence-level and functional evidence rather than purely stoichiometric feasibility.
+Standard gap-filling adds reactions with little biological evidence. This project uses ESM-2 protein embeddings to ask: does the genome encode an enzyme similar to known catalysts of each gap-filled reaction? [Rosetta mappings](../rosetta/) (UniProt → ModelSEED reactions with evidence tiers) identify which Swiss-Prot proteins catalyze each reaction; the `llm_homology_api` provides ESM-2 embeddings; FAISS cosine similarity scores genome proteins against candidates. The result is a gap-fill proposal grounded in sequence-level evidence.
 
 ## Data Sources
 - Rosetta project mappings (`projects/rosetta/data/`)
