@@ -1,0 +1,19 @@
+project_id: metabolite-distribution
+status: proposed
+created_at: "2026-05-16T00:00:00Z"
+last_session_at: "2026-05-16T00:00:00Z"
+branch: projects/metabolite-distribution
+
+engine:
+  name: claude
+
+authors:
+  - name: "Sam Seaver"
+    affiliation: "Argonne National Laboratory / KBase"
+    orcid: ""
+
+artifacts:
+  readme: true
+  research_plan: true
+  report: false
+  review: false
