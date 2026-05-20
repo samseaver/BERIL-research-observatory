@@ -11,7 +11,14 @@ Can ESM-2 protein embeddings, combined with Rosetta's UniProt-to-ModelSEED mappi
 This is a prototype using 42 gap-fill reactions across 48 E. coli genomes. The goal is a working notebook that demonstrates the approach end-to-end. If the prototype shows promise, it can be expanded to more organisms, broader UniProt coverage (TrEMBL, multi-channel evidence), and integration with the KBase reconstruction pipeline.
 
 ## Literature Context
-*TBD — to be expanded with literature review*
+
+Standard gap-filling algorithms add reactions to metabolic models based on stoichiometric feasibility, with little biological evidence that the host organism encodes the necessary enzymes (Karp et al., 2018; Orth & Palsson, 2012). Several tools address this by incorporating genomic, phylogenetic, or topological evidence (Zimmermann et al., 2021 — gapseq; Prigent et al., 2017 — Meneco; Vayena et al., 2022), but none leverage pretrained protein language model embeddings as a similarity signal.
+
+ESM-2 (Lin et al., 2023) produces 1280-dimensional embeddings that capture structural and functional properties of proteins at evolutionary scale. The question is whether cosine similarity in this embedding space can discriminate between plausible and implausible enzyme candidates for gap-filled reactions — a use case not yet tested in the literature.
+
+This project combines ESM-2 embeddings with Rosetta's curated UniProt-to-ModelSEED mappings (built on ModelSEED biochemistry; Henry et al., 2021) to test whether embedding similarity provides gap-filling evidence beyond what sequence annotation alone offers.
+
+See [references.md](references.md) for the full bibliography.
 
 ## Approach
 
@@ -106,6 +113,10 @@ Scored gap-fill proposals: Rosetta tier × embedding similarity
   - Which reactions remain orphans?
 - **Expected output**: Summary figures, assessment of whether expansion is warranted
 
+## Known Data Limitations
+
+**Gene ID format in genome results**: The `llm_homology_api` `.results.json` files use ordinal FASTA sequence numbers (1, 2, 3, …) as `query_id`, not the gene locus identifiers from FASTA headers (e.g., `562.55864.con.0010`). The `gene_id` column in scoring outputs therefore contains these ordinal indices. To resolve back to locus IDs, parse the corresponding `.faa` file and map by sequence position. This does not affect the similarity scoring (which operates on embeddings, not IDs) but limits interpretability of individual gene hits.
+
 ## Expected Outcomes
 - **If H1 supported**: Prototype demonstrates that embedding similarity adds discriminative evidence for gap-filling → expand to full UniProt, more organisms, pipeline integration
 - **If H0 not rejected**: Embeddings don't help distinguish plausible from implausible gap-fills → revisit scoring function or conclude that sequence-level evidence isn't sufficient for this task
@@ -120,6 +131,7 @@ Scored gap-fill proposals: Rosetta tier × embedding similarity
 ## Revision History
 - **v1** (2026-05-15): Initial plan — awaiting notebook upload
 - **v2** (2026-05-15): Revised with Swiss-Prot-first prototype scope after candidate count analysis (222K total → 1,140 Swiss-Prot)
+- **v3** (2026-05-20): Added literature context, documented gene ID format limitation, post-review updates
 
 ## Authors
 - Sam Seaver, KBase / Argonne National Laboratory

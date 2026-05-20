@@ -1,3 +1,9 @@
 pandas
 numpy
 matplotlib
+faiss-cpu
+httpx
+scipy
+pyarrow
+# berdl_notebook_utils — required for NB02 (Spark queries); available on-cluster
+# or via: pip install git+https://github.com/BERDataLakehouse/berdl_notebook_utils.git
