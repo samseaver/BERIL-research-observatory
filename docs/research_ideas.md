@@ -693,6 +693,10 @@ _Capture half-baked ideas here for future refinement_
 **Location**: `projects/bacillota_b_subsurface_accessory/`
 
 
+### [uniprot-gapfilling] UniProt-Guided Gap-Filling via Enzyme and Reaction Embeddings
+**Status**: COMPLETED (2026-05-20)
+**Results**: H0 not rejected — ESM-2 cosine similarity in the pretrained embedding space does not provide discriminative gap-filling evidence after pool-size correction and permutation testing. Rosetta mappings expanded candidate coverage from 12 to 32 reactions (29%→76%), but ESM-2 embedding space is too compressed for reaction-level discrimination (0.013 median cosine separation between same-reaction and cross-reaction pairs). After correcting for a max-of-N order statistic artifact (proxy pools ~5x larger inflated scores mechanically), only 1/32 reactions retains actionable evidence (rxn04657, N=1 candidate, p=0.028). The pool-size correction + permutation null + specificity z-score framework is a reusable methodological contribution for any embedding-based scoring pipeline. See `projects/uniprot-gapfilling/`.
+
 ### [bacillota_b_subsurface_accessory] (COMPLETED 2026-05-01)
 Originally PROPOSED above. Completion summary:
 
