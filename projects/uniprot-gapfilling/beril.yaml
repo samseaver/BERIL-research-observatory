@@ -1,7 +1,7 @@
 project_id: uniprot-gapfilling
-status: proposed
+status: analysis
 created_at: "2026-05-15T00:00:00Z"
-last_session_at: "2026-05-15T00:00:00Z"
+last_session_at: "2026-05-20T00:00:00Z"
 branch: projects/uniprot-gapfilling
 engine:
   name: claude
@@ -12,5 +12,5 @@ authors:
 artifacts:
   readme: true
   research_plan: true
-  report: false
+  report: true
   review: false
