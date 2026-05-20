@@ -4,84 +4,74 @@ date: 2026-05-20
 project: uniprot-gapfilling
 ---
 
-# Review: UniProt-Guided Gap-Filling via Enzyme and Reaction Embeddings
+# Review: UniProt-Guided Gap-Filling via Enzyme Embeddings
 
 ## Summary
 
-This is a well-executed prototype that demonstrates genuine methodological maturity and scientific honesty. The research question is clearly stated, the hypothesis is falsifiable, and the seven-notebook pipeline flows logically from landscape characterization through calibration, scoring, and statistical correction. The most impressive element is NB05b: the recognition and correction of a max-of-N order statistic artifact that would otherwise have produced a false-positive conclusion (H1 supported). That self-correction — including pool-size correction, a 1,000-permutation null model, and cross-reaction specificity z-scores — elevates this from a routine prototype to a methodologically careful study whose negative result is genuinely informative. The REPORT clearly and accurately states H0 is not rejected. Coverage is good: all 12 expected figures are present, all notebooks have saved outputs, and a `requirements.txt` and `Reproduction` section exist. The main gaps are a stale cell output in NB01, an unacknowledged selection bias in the background calibration pool, and a narrative inconsistency between the NB05b verdict print and the final README/REPORT conclusion.
-
----
+This is a well-executed prototype that tests whether ESM-2 protein embeddings can discriminate biologically plausible metabolic gap-filling candidates from implausible ones in *E. coli* models. The project runs a complete seven-notebook pipeline — from gap-fill reaction characterization through embedding retrieval, similarity scoring, and statistical evaluation — and arrives at a clear, honest null result: pretrained ESM-2 cosine similarity does not provide discriminative gap-filling evidence after appropriate statistical correction. The strongest methodological contribution is the self-correcting NB05→NB05b arc: the initial analysis discovered an apparent paradox (proxy reactions outscoring direct reactions), which NB05b rigorously diagnosed as a max-of-N order statistic artifact and corrected with pool-size adjustment, permutation null modeling, and cross-reaction specificity z-scoring. That diagnostic and correction framework is genuinely reusable and is the paper-worthy output of this project even more than the null result itself. Gaps worth addressing: one notebook cell (NB02's proxy loop) has no visible text output, the gene ID interpretability limitation for the single actionable reaction (rxn04657) is documented but unresolved, and the background calibration uses enzyme-biased Swiss-Prot proteins rather than truly random sequences — which the REPORT acknowledges but understates in terms of impact on corrected verdict interpretation.
 
 ## Methodology
 
-**Research question and hypothesis.** Both are clear and testable. H0/H1 are stated precisely in the RESEARCH_PLAN, the analysis tests them with quantitative criteria, and the final verdict ("H0 not rejected") is correctly rendered in the README and REPORT.
+**Research question**: Clearly stated and testable as H0/H1. The question — whether ESM-2 cosine similarity can discriminate same-reaction enzyme candidates from cross-reaction proteins — is well-scoped for a prototype, and the null result is as informative as a positive.
 
-**Approach.** The data flow is well-designed: Rosetta parquets → Swiss-Prot candidate assembly → ESM-2 embeddings via `llm_homology_api` → FAISS cosine search → percentile ranking → pool-size-corrected evaluation. The proxy fallback using `reaction_similarity > 0.7` for uncovered reactions is reasonable. The cross-genome consistency check (cosine std = 0.0006 across 48 genomes) is a good sanity check that justifies collapsing to one representative genome for permutation testing.
+**Approach soundness**: The pipeline logic is correct. Rosetta mappings establish curated reaction-to-UniProt links; FAISS enables efficient cosine search across 48 genomes; rank-based percentile scoring was the right pivot once NB03b revealed a 0.013 median separation in absolute cosine space. The progression from raw scoring (NB04–NB05) to corrected scoring (NB05b) reflects good scientific reflexes rather than a flaw in study design.
 
-**Scope.** The prototype is appropriately scoped: 42 reactions, 48 *E. coli* genomes, Swiss-Prot only. Limitations (single organism, Swiss-Prot only, mean-pooled embeddings) are clearly listed in both the RESEARCH_PLAN and REPORT.
+**Data sources**: Clearly identified in README, RESEARCH_PLAN, and REPORT. The Rosetta project dependency is documented with explicit prerequisite instructions. The NB02 Spark query against `kbase_msd_biochemistry.reaction_similarity` is the only BERDL-dependent step beyond the Rosetta parquets, and the README correctly calls out which notebooks can run locally from cached data (`user_data/proxy_candidates.parquet`, `user_data/candidate_embeddings.json`).
 
-**Background calibration pool — unacknowledged selection bias.** The percentile rank background in NB04 is built from 200 randomly sampled proteins drawn from the *candidate pool* (3,168 Swiss-Prot enzymes), not from unrelated random protein sequences. Because Swiss-Prot proteins are reviewed, high-quality enzyme sequences, they cluster in a compressed region of ESM-2 space alongside the gap-fill candidates. The resulting background distribution may be *too generous* (already biased toward high similarity), which means the percentile rank scores are potentially less conservative than a truly null background would produce. The REPORT acknowledges that "200 random proteins per genome for background distribution may undersample the tail" but does not note the pool-selection bias. This is worth documenting explicitly, especially because the entire corrected-verdict framework rests on this background distribution.
+**Scope appropriateness**: Limiting to Swiss-Prot (3,168 unique proteins after proxy expansion) for the prototype is well-justified in the RESEARCH_PLAN. The decision is documented with an F1 rationale (Swiss-Prot 0.89 vs TrEMBL 0.84), though that number is asserted without a citation to where it comes from in the Rosetta project outputs.
 
-**Reproducibility.** The README's `## Reproduction` section describes all steps, notes which notebooks require Spark, lists expected runtimes, and documents cached data alternatives. This is well done.
-
----
+**Minor inconsistency**: NB01's partition summary reports "No Rosetta evidence: 14 reactions" but NB02 section 1 prints "No Rosetta evidence (need proxy): 16." The code in NB02 correctly adds `evidence_no_sp` and `missing` reactions to the proxy search set, so the behavior is right — but the label breaks continuity from NB01 and would confuse a reader expecting consistent counts.
 
 ## Code Quality
 
-**SQL correctness.** The `reaction_similarity` query correctly applies `CAST(similarity AS FLOAT) > 0.7` and uses the `seed.reaction:{rxn}` ID format. No SQL reserved-word or column-name pitfalls from `docs/pitfalls.md` are triggered.
+**SQL correctness**: The proxy reaction query in NB02 correctly uses `CAST(similarity AS FLOAT)` when filtering `reaction_similarity`, consistent with the pitfalls doc on string-typed numeric columns. The reaction ID format `seed.reaction:{rxn_id}` matches the BERDL schema. No `SELECT DISTINCT` + aggregate issues are present. BERDL pitfall coverage is clean overall; no pangenome or fitness-browser pitfalls are triggered because the project doesn't touch those schemas.
 
-**Statistical methods.** The scoring progression — from raw cosine → percentile rank → pool-size-corrected rank → permutation p-value → specificity z-score — is sound. The permutation p-value uses the standard `(count + 1) / (N + 1)` continuity correction. The pool-size correction formula `(p/100)^N * 100` is the correct CDF of the max-of-N uniform order statistic. The cross-reaction specificity z-score is straightforward and correctly computed.
+**Statistical methods**: The pool-size correction (`corrected = (p/100)^N * 100`) is the right transformation for the maximum of N uniform draws. The permutation test uses a well-designed exclusion set (real proteins excluded from null draws), seeds for reproducibility (`np.random.default_rng(42)`), and a conservative +1 numerator. The cross-reaction specificity z-score is a sensible third signal, though with 32 reactions and nearly identical real-best-cosine values (most ≥ 0.999), the z-score denominator (cross-rxn std ≈ 0.011) makes the measure nearly meaningless at the top of the distribution — all high-similarity reactions cluster within ±1 z of each other. This is correctly reported (zero reactions achieve z > 1), but the `cross_reaction_specificity.png` panel 1 axis could mislead a reader without an annotation.
 
-**Stale print output in NB01.** The setup cell sets `DATA_OUT = Path('..') / 'user_data'`, but the output in the summary-table cell reads `Saved to ../data/gapfill_landscape.csv`. Since `Path('..') / 'user_data'` would print as `../user_data/...`, this output must have been generated when `DATA_OUT` pointed to `'data'` — indicating stale outputs from an earlier code version. The actual file lands in `user_data/` (NB02 reads it successfully and the REPORT correctly cites `user_data/gapfill_landscape.csv`), so the behavior is correct, but the stale printout is misleading for readers tracing data provenance.
+**Notebook organization**: Excellent. Each notebook has a clear header markdown cell stating inputs, outputs, and purpose. The flow setup → query → analysis → visualization → save is consistent throughout. Cell text outputs are comprehensive and well-formatted across all notebooks.
 
-**Unused import.** NB04 imports `from scipy.stats import percentileofscore` but uses `np.searchsorted` for scoring (which is faster and equivalent). The unused import should be removed.
+**NB02 proxy loop (cell d1)**: The proxy search loop iterates over `proxy_rxns` and is expected to print per-reaction candidate counts, but this cell has no saved text output in the notebook. Every other output-producing cell in the pipeline has printed results captured. This is the only gap in output completeness.
 
-**Proxy loop memory.** NB02 cell d1 accumulates `proxy_records` as a list before deduplication. If a protein appears in multiple similar reactions, it can be appended multiple times before the final `drop_duplicates`. This is not a bug — the deduplication is applied correctly — but the intermediate list can be larger than necessary. No impact on correctness.
-
-**Pitfall compliance.** The project correctly uses `from berdl_notebook_utils.setup_spark_session import get_spark_session` (the on-cluster CLI import form, per `docs/pitfalls.md`). The `CAST` on the `similarity` column avoids the string-typed numeric column pitfall. No `SELECT DISTINCT` + aggregate patterns are used.
-
-**Notebook organization.** All seven notebooks follow the standard setup → query → analysis → visualization pattern. Markdown headers, per-notebook input/output declarations, and sanity-check cells (NB03, section 6) are well placed.
-
----
+**Background distribution design (NB04)**: The 200-protein genome background per genome is drawn from the Swiss-Prot candidate pool itself — enzyme sequences, not random proteins. This is acknowledged in the REPORT Limitations section as "likely too generous," but the downstream effect matters: the corrected verdicts already show 23/32 reactions as "insufficient." If the background were tighter (true random *E. coli* proteins), the picture would be even more null. The REPORT's phrasing could be stronger: the corrected medians (3.4 for high-evidence, 0.7 for no-evidence) may be *upper bounds* on the true signal.
 
 ## Findings Assessment
 
-**Conclusions are supported by the data.** The five findings in the REPORT are directly traceable to notebook outputs:
-- Finding 1 (coverage expansion from 12 to 32 reactions) is demonstrated in NB05 cell e1 with explicit counts.
-- Finding 2 (0.013 median cosine separation) is computed in NB03b cell h1.
-- Finding 3 (max-of-N order statistic trap) is quantified in NB05b cell b1 with direct excess values (-16.3 for direct, -2.5 for proxy).
-- Finding 4 (2/32 reactions significant at p < 0.05) is the NB05b permutation result.
-- Finding 5 (H0 not rejected) correctly synthesizes the above.
+**Finding 1 (Rosetta coverage expansion)**: Well-supported. Numbers from NB01 and NB02 are internally consistent: 25 reactions with direct Swiss-Prot candidates, 7 additional via proxy, 10 uncovered. The comparison against the original flat-lookup (12 reactions → 32) matches NB05's output exactly.
 
-**Narrative inconsistency in NB05b.** The revised hypothesis evaluation cell (g1) prints "H1 WEAKLY SUPPORTED: After correction, only 1/32 reactions retain actionable evidence." Describing 3% actionability as "supported" is at odds with the README and REPORT, which correctly say H0 is not rejected. The print statement appears to be a threshold artifact from the verdict classification logic (`>= 0.3` triggers the H1-supported branch, and 3% < 30%, so the else branch fires — but the else-branch message was not updated to reflect H0). The REPORT has the right conclusion, but anyone reading notebook outputs rather than the REPORT could be confused.
+**Finding 2 (ESM-2 compression)**: Well-supported and quantified. The 0.013 median separation (same-reaction vs cross-reaction) is computed over 1.25M pairs — a large enough sample. The candidate-vs-genome top-1 median of 0.975 correctly identifies the failure mechanism: any Swiss-Prot enzyme finds a near-perfect match in an *E. coli* genome regardless of functional specificity.
 
-**Limitations are well-acknowledged.** Single organism, Swiss-Prot only, mean-pooled embeddings, and 10 uncovered reactions are all clearly stated. The future-directions section is substantive and grounded (fine-tuned models, alignment-based scoring, per-residue attention weighting, multi-evidence integration).
+**Finding 3 (pool-size artifact)**: The strongest finding in the project. The expected-max formula and the forensic comparison (direct excess = −16.3 percentile points, proxy excess = −2.5) cleanly diagnose the problem. The insight that "direct reactions score *below* null while proxy reactions sit near null" is the key diagnostic that makes NB05b's correction principled rather than post-hoc.
 
-**Orphan reactions.** 10 of 42 reactions have no candidates. The REPORT notes this but does not characterize *why* — e.g., are these novel KBase reactions with no SEED equivalents, unusual chemistries, or errors in the gap-fill input? A brief characterization of the orphan set would help readers understand whether they are a tractable future target or a structural gap in the data.
+**Finding 4 (permutation null)**: The result that only 2/32 reactions achieve p < 0.05 is credible. rxn04660 is significant at p = 0.001 but has specificity_z < 1, so it does not clear the moderate-evidence bar. rxn04657 (N=1 candidate, p = 0.028) retains moderate status precisely because there is no pool-size inflation with a single candidate — that is the correct interpretation and the REPORT makes it clearly.
 
----
+**Finding 5 (H0 not rejected)**: Clearly stated and supported by the data. The verdict comparison table (28 demotions after correction) is the key output. The REPORT correctly frames this as an informative null result with specific failure mode characterized, not as a pipeline failure.
+
+**NB05 intermediate verdict**: NB05 section 6 concludes "H1 SUPPORTED: 16/32 reactions have moderate-to-strong embedding evidence" based on raw, uncorrected scores. A markdown caveat cell at the top of that section flags NB05b as superseding this verdict, but the cell *output* prints "H1 SUPPORTED" with no qualification. A reader running only NB05 would see the wrong conclusion in the output. Appending a corrective print statement to that cell would resolve this.
+
+**Gene ID interpretability for rxn04657**: NB03 sanity check shows FAISS hits return ordinal indices (e.g., `1986`, `1739`) rather than locus names. The RESEARCH_PLAN documents this as a known limitation. For rxn04657 — the single actionable reaction — the "best-hit gene" is an ordinal index that cannot be biologically interpreted without parsing the corresponding `.faa` FASTA to map ordinal position → locus tag. Given that rxn04657 is the headline result, the REPORT should include at least a brief resolved identifier.
+
+**Limitations section**: Thorough and honest. Single-organism scope, Swiss-Prot-only candidates, mean-pooled embeddings, and biased background calibration are all identified. The Future Directions section is specific and actionable (fine-tuned models, alignment-based scoring, per-residue attention, reaction fingerprints).
 
 ## Suggestions
 
-1. **Fix the stale NB01 print output.** Re-run NB01 with the current code so the `DATA_OUT` path in the summary cell output matches the declared variable (`../user_data/gapfill_landscape.csv`). This is a one-cell re-run and ensures notebook outputs accurately reflect code state. **(Critical for reproducibility)**
+1. **[Critical] Capture NB02 proxy loop output** — Re-run cell d1 and save the notebook so the per-reaction proxy candidate counts are visible in the output. Without output, a reader cannot verify which reactions got proxy candidates or how many. This is the only cell in the pipeline with missing text output.
 
-2. **Acknowledge background pool selection bias in the REPORT.** Add a sentence to the Limitations section noting that the percentile rank background is drawn from Swiss-Prot candidates (already enzyme-biased in ESM-2 space), not from truly random protein sequences. State that this likely makes the background less conservative — meaning percentile rank scores may be over-estimated relative to a random-protein null. **(Important for methodological transparency)**
+2. **[High] Resolve the gene ID for rxn04657** — Add a short code block (either appended to NB05b or in the REPORT) that parses `user_data/ecoli-files/219790_10_1-protein.faa` to map ordinal FAISS index → locus tag for the best-hit gene. A one-liner is sufficient: `locus = [r.id for r in SeqIO.parse(faa_path, 'fasta')][ordinal_idx]`. This turns the single actionable result from "ordinal index in FAISS" into a named gene, making the output biologically interpretable.
 
-3. **Fix the NB05b verdict print string.** In cell g1 the else-branch prints "H1 WEAKLY SUPPORTED" when only 1/32 reactions (3%) are actionable. Change this to a statement consistent with "H0 not rejected" so the notebook output matches the README and REPORT conclusion. **(Moderate — avoids reader confusion)**
+3. **[High] Quantify the background calibration bias** — The REPORT acknowledges the enzyme-biased background may over-estimate scores. Add a quick validation in NB03b or NB05b: draw a second 200-protein background from a random sample of the *E. coli* genome proteome (available in `ecoli-files/`) and compare the resulting percentile-rank distribution. Even a two-panel figure showing Swiss-Prot background vs random-protein background would establish whether the bias materially changes the corrected verdicts or merely adjusts the magnitudes.
 
-4. **Remove the unused `percentileofscore` import in NB04.** `from scipy.stats import percentileofscore` is imported but never called; `np.searchsorted` is used instead. Remove the unused import to avoid ambiguity about the scoring implementation. **(Minor)**
+4. **[Medium] Fix the NB01→NB02 count label** — NB02 section 1 prints "No Rosetta evidence (need proxy): 16" but should read something like "Reactions needing proxy search: 16 (14 no-evidence + 1 evidence-no-SP + 1 missing)" to match NB01's partition output and prevent confusion about why the count changed.
 
-5. **Characterize the 10 orphan reactions.** Add a brief note in NB02 (or the REPORT) describing why each of the 10 uncovered reactions has no candidates — e.g., absent from `reaction_similarity` above threshold 0.7, novel KBase-only reactions, unusual stoichiometry. This helps prioritize future candidate-assembly work and tells readers whether the orphans are tractable or structurally problematic. **(Useful for future expansion)**
+5. **[Medium] Add a corrective print to NB05 section 6** — The hypothesis evaluation cell prints "H1 SUPPORTED" based on raw scores. Append a `print()` line: `"NOTE: NB05b supersedes this verdict — after pool-size correction, H0 is not rejected."` This ensures the correct final conclusion appears in the cell output, not only in the markdown caveat above it.
 
-6. **Document the off-cluster Spark setup more explicitly.** The README says NB02 requires "a live Spark session via `berdl_notebook_utils` (on-cluster only, or off-cluster with `.venv-berdl`)" but does not explain what `.venv-berdl` is. Link to `.claude/skills/berdl-query/references/off-cluster-mechanics.md` or add a one-line pointer so a new collaborator can set up the environment without asking. **(Nice to have)**
+6. **[Medium] Source the Swiss-Prot F1 claim in RESEARCH_PLAN** — The statement "Swiss-Prot proteins showed higher validation accuracy in Rosetta (F1 0.89 vs TrEMBL 0.84)" should cite the specific Rosetta notebook or data file that supports it. Without a cross-reference, this number is unverifiable by a reader.
 
-7. **Note single-genome permutation test scope in the REPORT.** The cross-genome consistency justification (std = 0.0006) is solid for *E. coli*, but the REPORT's Future Directions section proposes expanding to diverse organisms — where within-species genome scores may diverge more. Add a caveat that per-genome permutation tests would be needed for cross-species studies. **(Nice to have, pre-empts a common reviewer question)**
+7. **[Low] Annotate the cross-reaction specificity figure** — `figures/cross_reaction_specificity.png` panel 1 shows all reactions clustered between z = −4 and z = +1, with reference lines at z = 1 and z = 2 at the top edge of the visible range. A note that the top cluster (z ≈ 0.99) reflects floating-point saturation (cosine → 1.000) rather than genuine specificity would prevent over-interpretation.
 
----
+8. **[Low] Confirm `gapfill_landscape.csv` is not gitignored** — NB01 saves this file to `user_data/` and NB02 reads it as its first input. If `.gitignore` excludes `user_data/*.csv`, a fresh runner would need to run NB01 before NB02, which is already documented in the README but worth double-checking against `.gitignore`.
 
 ## Review Metadata
-
 - **Reviewer**: BERIL Automated Review (Claude, claude-sonnet-4-6)
 - **Date**: 2026-05-20
-- **Scope**: README.md, RESEARCH_PLAN.md, REPORT.md, references.md, requirements.txt, 7 notebooks (NB01–NB05b with full cell outputs), 12 figures, docs/pitfalls.md
+- **Scope**: README.md, RESEARCH_PLAN.md, REPORT.md, 7 notebooks (NB01–NB05b), 12 figures, requirements.txt, docs/pitfalls.md
 - **Note**: This review was generated by an AI system. It should be treated as advisory input, not a definitive assessment.
