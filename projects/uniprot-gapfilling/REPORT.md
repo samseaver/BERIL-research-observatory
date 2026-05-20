@@ -157,7 +157,7 @@ This project provides:
 - **Swiss-Prot only**: The 3,168-protein candidate set uses only reviewed Swiss-Prot entries. TrEMBL candidates (222K+) could provide different coverage patterns, though the fundamental embedding compression issue would persist
 - **Single embedding model**: Only ESM-2 (650M) tested. Larger models (ESM-2 15B) or function-specific fine-tuned models might perform differently
 - **Mean-pooled embeddings**: Using per-residue mean pooling loses active-site-level information that could be critical for functional discrimination
-- **Background calibration**: 200 random proteins per genome for background distribution may undersample the tail
+- **Background calibration**: The 200-protein background distribution is drawn from the Swiss-Prot candidate pool (enzyme-biased), not from truly random protein sequences. Because Swiss-Prot enzymes cluster in a compressed region of ESM-2 space, this background is likely too generous — percentile rank scores may be over-estimated relative to a random-protein null. Additionally, 200 samples may undersample the tail
 
 ## Data
 
